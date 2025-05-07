@@ -11,6 +11,7 @@ import {
 import { requestJira } from '@forge/bridge';
 import { buildJqlQuery, handleExportCSV, handleExportExcel, handleExportManyExcel } from "./utils";
 import { view } from "@forge/bridge";
+import WorklogDetailsModal from "./WorklogDetailsModal";
 
 
 
@@ -20,6 +21,10 @@ export const PivotTable = ({ filters }) => {
   const [worklogs, setWorklogs] = React.useState([]);
   const [loading, setLoading] = useState(false);
   const [jiraBaseUrl, setJiraBaseUrl] = useState("");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedDetails, setSelectedDetails] = useState(null);
+  const [detailsMap, setDetailsMap] = useState({});
 
 
   const getSiteUrl = async () => {
@@ -67,6 +72,7 @@ export const PivotTable = ({ filters }) => {
               component: issue.fields.components.length ? issue.fields.components[0].name : "N/A",
               hours: log.timeSpentSeconds / 3600,
               started: log.started,
+              ticket: issue.key
             }));
           }
 
@@ -121,6 +127,7 @@ export const PivotTable = ({ filters }) => {
           started: log.started,
           project: project,
           component: component,
+          ticket: issueKey
         })));
 
         if (data.total <= startAt + 50) {
@@ -155,6 +162,8 @@ export const PivotTable = ({ filters }) => {
         acc[key] = {
           author: log.author,
           component: log.component,
+          project: log.project,
+          ticket: log.ticket,
           dates: uniqueDates.reduce((datesAcc, date) => ({ ...datesAcc, [date]: "-" }), {}),
         };
       }
@@ -163,13 +172,17 @@ export const PivotTable = ({ filters }) => {
     }, {})
   ), [worklogs, uniqueDates]);
 
-  // Group components by author
   const groupedData = useMemo(() => Object.values(
     aggregatedData.reduce((acc, item) => {
       if (!acc[item.author]) {
         acc[item.author] = { author: item.author, components: [] };
       }
-      acc[item.author].components.push({ component: item.component, dates: item.dates });
+      acc[item.author].components.push({
+        project: item.project,
+        component: item.component,
+        ticket: item.ticket,
+        dates: item.dates,
+      });
       return acc;
     }, {})
   ), [aggregatedData]);
@@ -184,13 +197,13 @@ export const PivotTable = ({ filters }) => {
       width: 20,
       style: { whiteSpace: "nowrap", overflow: "visible", minWidth: "100px", border: "1px solid #ddd", padding: "8px" },
     },
-    {
-      key: "component",
-      content: "Component",
-      isSortable: true,
-      shouldTruncate: false,
-      style: { whiteSpace: "nowrap", overflow: "visible", minWidth: "100px", border: "1px solid #ddd", padding: "8px", textAlign: "left" },
-    },
+    /* {
+       key: "component",
+       content: "Component",
+       isSortable: true,
+       shouldTruncate: false,
+       style: { whiteSpace: "nowrap", overflow: "visible", minWidth: "100px", border: "1px solid #ddd", padding: "8px", textAlign: "left" },
+     },*/
     ...uniqueDates.map((date) => ({
       key: date,
       content: date,
@@ -247,6 +260,81 @@ export const PivotTable = ({ filters }) => {
     })))
     .sort((a, b) => a.cells[0].content.localeCompare(b.cells[0].content)),
     [uniqueDates, groupedData]);
+
+  const { simpleRows } = useMemo(() => {
+    const tempDetailsMap = {};
+
+    const computedRows = groupedData.map((authorData) => {
+      const totalCells = uniqueDates.map((date) => {
+        let total = 0;
+        const details = [];
+
+        authorData.components.forEach((comp) => {
+          const hours = comp.dates[date];
+          if (hours !== "-" && Math.abs(hours) >= 0.0001) {
+            total += parseFloat(hours);
+            details.push({
+              project: comp.project || "N/A",
+              component: comp.component,
+              ticket: comp.ticket || "N/A",
+              hours,
+            });
+          }
+        });
+
+        // Populate tempDetailsMap
+        if (!tempDetailsMap[authorData.author]) tempDetailsMap[authorData.author] = {};
+        tempDetailsMap[authorData.author][date] = details;
+
+        return {
+          key: date,
+          content: total > 0 ? (
+            <Button
+              onClick={() => handleCellClick(authorData.author, date, tempDetailsMap)}
+              appearance="subtle"
+            >
+              {total.toFixed(2)}
+            </Button>
+          ) : "-",
+          style: {
+            whiteSpace: "nowrap",
+            border: "1px solid #ddd",
+            padding: "8px",
+            textAlign: "center",
+          },
+        };
+      });
+
+      return {
+        key: authorData.author,
+        cells: [
+          {
+            key: "author",
+            content: authorData.author,
+            style: {
+              whiteSpace: "nowrap",
+              border: "1px solid #ddd",
+              padding: "8px",
+              fontWeight: "bold",
+            },
+          },
+          ...totalCells,
+        ],
+      };
+    });
+
+    setDetailsMap(tempDetailsMap);
+    return { simpleRows: computedRows };
+  }, [groupedData, uniqueDates]);
+
+  const handleCellClick = (author, date, detailsMap) => {
+    setSelectedDetails({
+      author,
+      date,
+      details: detailsMap[author][date],
+    });
+    setModalOpen(true);
+  };
 
   const transformWorklogData = useMemo(() => {
     return (worklogs) => {
@@ -327,13 +415,13 @@ export const PivotTable = ({ filters }) => {
                 </Button>
 
                 <Button
-                  onClick={() => handleExportManyExcel('worklog_data', columns, rowsCsvData, 'worklog per day', totalColumns, totalRows, 'worklog summary' )}
+                  onClick={() => handleExportManyExcel('worklog_data', columns, rowsCsvData, 'worklog per day', totalColumns, totalRows, 'worklog summary')}
                   appearance="primary"
                 >
                   Export to Excel
                 </Button>
               </Inline>
-              <DynamicTable head={{ cells: columns }} rows={rows} caption={"Worklog details (hours)"} className="worklog-table" />
+              <DynamicTable head={{ cells: columns }} rows={simpleRows} caption={"Worklog details (hours)"} className="worklog-table" />
               <DynamicTable key={worklogs.length}
                 head={{ cells: totalColumns }} rows={totalRows} caption={"Worklog Summary by Project"} />
             </Box>
@@ -345,6 +433,12 @@ export const PivotTable = ({ filters }) => {
           }
         </>
       )}
+      <WorklogDetailsModal
+        modalOpen={modalOpen}
+        setModalOpen={setModalOpen}
+        selectedDetails={selectedDetails}
+        jiraBaseUrl={jiraBaseUrl}
+      />
     </>
   );
 
