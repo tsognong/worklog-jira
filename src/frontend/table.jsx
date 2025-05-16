@@ -214,6 +214,33 @@ export const PivotTable = ({ filters }) => {
     })),
   ], [uniqueDates]);
 
+  // Create table columns
+  const columnsForExport = useMemo(() => [
+    {
+      key: "author",
+      content: "Author",
+      isSortable: true,
+      shouldTruncate: false,
+      width: 20,
+      style: { whiteSpace: "nowrap", overflow: "visible", minWidth: "100px", border: "1px solid #ddd", padding: "8px" },
+    },
+    {
+      key: "component",
+      content: "Component",
+      isSortable: true,
+      shouldTruncate: false,
+      style: { whiteSpace: "nowrap", overflow: "visible", minWidth: "100px", border: "1px solid #ddd", padding: "8px", textAlign: "left" },
+    },
+    ...uniqueDates.map((date) => ({
+      key: date,
+      content: date,
+      width: 50,
+      isSortable: true,
+      shouldTruncate: false,
+      style: { whiteSpace: "nowrap", overflow: "visible", minWidth: "100px", border: "1px solid #ddd", padding: "8px", textAlign: "left" },
+    })),
+  ], [uniqueDates]);
+
   // Create table rows, ordered by author
   const rows = useMemo(() => groupedData
     .flatMap((authorData) => authorData.components.map((componentData) => ({
@@ -401,21 +428,21 @@ export const PivotTable = ({ filters }) => {
             <Box>
               <Inline space="space.100">
                 <Button
-                  onClick={() => handleExportCSV(columns, rowsCsvData, 'worklog_data.csv')}
+                  onClick={() => handleExportCSV(columnsForExport, rowsCsvData, 'worklog_data.csv')}
                   appearance="primary"
                 >
                   Export to CSV
                 </Button>
 
                 <Button
-                  onClick={() => handleExportCSV(totalColumns, totalRows, 'worklog_summary_data.csv')}
+                  onClick={() => handleExportCSV(columnsForExport, totalRows, 'worklog_summary_data.csv')}
                   appearance="default"
                 >
                   Export summary to CSV
                 </Button>
 
                 <Button
-                  onClick={() => handleExportManyExcel('worklog_data', columns, rowsCsvData, 'worklog per day', totalColumns, totalRows, 'worklog summary')}
+                  onClick={() => handleExportManyExcel('worklog_data', columnsForExport, rowsCsvData, 'worklog per day', totalColumns, totalRows, 'worklog summary')}
                   appearance="primary"
                 >
                   Export to Excel
