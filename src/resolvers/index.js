@@ -3,6 +3,34 @@ import { requestJira } from '@forge/bridge';
 
 const resolver = new Resolver();
 
+const buildJqlQuery = (gadgetConfiguration) => {
+    let jqlQuery = "";
+
+    if (gadgetConfiguration?.projects?.length > 0) {
+        const projects = gadgetConfiguration.projects.map(project => `"${project.label}"`).join(',');
+        jqlQuery += `project in (${projects})`;
+    }
+
+    if (gadgetConfiguration?.components?.length > 0) {
+        if (jqlQuery) jqlQuery += " AND ";
+        const components = gadgetConfiguration.components.map(component => `"${component.label}"`).join(',');
+        jqlQuery += `component in (${components})`;
+    }
+
+    if (gadgetConfiguration?.authors?.length > 0) {
+        if (jqlQuery) jqlQuery += " AND ";
+        const authors = gadgetConfiguration.authors.map(author => `"${author.value}"`).join(',');
+        jqlQuery += `worklogAuthor in (${authors})`;
+    }
+
+    if (gadgetConfiguration?.fromDate && gadgetConfiguration?.toDate) {
+        if (jqlQuery) jqlQuery += " AND ";
+        jqlQuery += `worklogDate >= "${gadgetConfiguration.fromDate}" AND worklogDate <= "${gadgetConfiguration.toDate}"`;
+    }
+
+    return jqlQuery;
+};
+
 resolver.define('getText', (req) => {
   console.log(req);
   return 'Hello, world!';
@@ -19,7 +47,7 @@ const getAllWorklogsForIssue = async (issueKey, fromDate, toDate, project, compo
 
     while (hasMore) {
       const res = await requestJira(
-        `/rest/api/3/issue/${issueKey}/worklog?startedAfter>=${fromDateTimestamp}&startedBefore<=${toDateTimestamp}&startAt=${startAt}&maxResults=50`
+        `/rest/api/3/issue/${issueKey}/worklog?startedAfter=${fromDateTimestamp}&startedBefore=${toDateTimestamp}&startAt=${startAt}&maxResults=50`
       );
       const data = await res.json();
       allWorklogs = allWorklogs.concat(data.worklogs.map((log) => ({
@@ -51,14 +79,29 @@ const fetchWorklogs = async (gadgetConfiguration) => {
     const fromDate = gadgetConfiguration.fromDate;
     const toDate = gadgetConfiguration.toDate;
 
-    let startAt = 0;
+    let nextPageToken = null;
     let allWorklogs = [];
     let hasMore = true;
 
     while (hasMore) {
-      const res = await requestJira(
-        `/rest/api/3/search?jql=${encodeURIComponent(jqlQuery)}&fields=key,summary,worklog,project,components,worklogAuthor&startAt=${startAt}&maxResults=100`
-      );
+      const searchBody = {
+        jql: jqlQuery,
+        maxResults: 100,
+        fields: ['key', 'summary', 'worklog', 'project', 'components']
+      };
+      
+      if (nextPageToken) {
+        searchBody.nextPageToken = nextPageToken;
+      }
+      
+      const res = await requestJira(`/rest/api/3/search/jql`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(searchBody)
+      });
       const data = await res.json();
 
       for (const issue of data.issues) {
@@ -80,10 +123,11 @@ const fetchWorklogs = async (gadgetConfiguration) => {
         allWorklogs = allWorklogs.concat(issueWorklogs);
       }
 
-      if (data.total <= startAt + 100) {
-        hasMore = false;
+      // Use nextPageToken for pagination instead of startAt
+      if (data.nextPageToken) {
+        nextPageToken = data.nextPageToken;
       } else {
-        startAt += 100;
+        hasMore = false;
       }
     }
 
@@ -119,9 +163,9 @@ resolver.define("getWorklogs", async (req) => {
 
 resolver.define('getProjects', async () => {
   try {
-    const res = await requestJira(`/rest/api/3/project/search`);
+    const res = await requestJira(`/rest/api/3/project?expand=description,lead,url&maxResults=1000`);
     const data = await res.json();
-    const formattedProjects = data.values?.map((project) => ({
+    const formattedProjects = data?.map((project) => ({
       label: project.name,
       value: project.id,
     })) || [];
@@ -132,11 +176,17 @@ resolver.define('getProjects', async () => {
   }
 });
 
-resolver.define('getComponents', async () => {
+resolver.define('getComponents', async (req) => {
   try {
-    const res = await requestJira(`/rest/api/3/component`);
+    const projectId = req.payload?.projectId;
+    if (!projectId) {
+      // If no project specified, return empty array or get components from all projects
+      return [];
+    }
+    
+    const res = await requestJira(`/rest/api/3/project/${projectId}/components`);
     const data = await res.json();
-    const formattedComponents = data.values?.map((component) => ({
+    const formattedComponents = data?.map((component) => ({
       label: component.name,
       value: component.id,
     })) || [];
@@ -147,9 +197,14 @@ resolver.define('getComponents', async () => {
   }
 });
 
-resolver.define('getAuthors', async () => {
+resolver.define('getAuthors', async (req) => {
   try {
-    const res = await requestJira(`/rest/api/3/user/search?query=.`);
+    const searchQuery = req.payload?.query || '';
+    const maxResults = req.payload?.maxResults || 50;
+    
+    // Use a more specific search instead of searching all users with "."
+    const queryParam = searchQuery ? `query=${encodeURIComponent(searchQuery)}` : 'query=a'; // Search for users with 'a' in their name as a reasonable default
+    const res = await requestJira(`/rest/api/3/user/search?${queryParam}&maxResults=${maxResults}`);
     const data = await res.json();
     const formattedAuthors = data
       ?.filter((u) => u.accountType === 'atlassian')

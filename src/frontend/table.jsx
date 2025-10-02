@@ -48,14 +48,29 @@ export const PivotTable = ({ filters }) => {
       const toDate = params.toDate;
       const authors = params.authors?.map(author => author.label) || [];
 
-      let startAt = 0;
+      let nextPageToken = null;
       let allWorklogs = [];
       let hasMore = true;
 
       while (hasMore) {
-        const res = await requestJira(
-          `/rest/api/3/search?jql=${encodeURIComponent(jqlQuery)}&fields=key,summary,worklog,project,components,worklogAuthor&startAt=${startAt}&maxResults=100`
-        );
+        const searchBody = {
+          jql: jqlQuery,
+          maxResults: 100,
+          fields: ['key', 'summary', 'worklog', 'project', 'components']
+        };
+        
+        if (nextPageToken) {
+          searchBody.nextPageToken = nextPageToken;
+        }
+        
+        const res = await requestJira(`/rest/api/3/search/jql`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(searchBody)
+        });
         const data = await res.json();
 
         for (const issue of data.issues) {
@@ -79,10 +94,11 @@ export const PivotTable = ({ filters }) => {
           allWorklogs = allWorklogs.concat(issueWorklogs);
         }
 
-        if (data.total <= startAt + 100) {
-          hasMore = false;
+        // Use nextPageToken for pagination instead of startAt
+        if (data.nextPageToken) {
+          nextPageToken = data.nextPageToken;
         } else {
-          startAt += 100;
+          hasMore = false;
         }
       }
 
