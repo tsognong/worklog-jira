@@ -406,7 +406,7 @@ export const PivotTable = ({ filters }) => {
       const components = Array.from(uniqueComponents);
 
       const totalColumns = [
-        { key: "author", content: "Author", isSortable: true, style: { padding: '6px', border: '1px solid #ddd', fontSize: '12px', maxWidth: '120px' } },
+        { key: "author", content: "Author", isSortable: true, style: { padding: '6px', border: '1px solid #ddd', fontSize: '12px', minWidth: '150px', maxWidth: '200px', whiteSpace: 'nowrap' } },
         ...components.map((c) => ({ key: c, content: c, isSortable: true, style: { minWidth: '80px', maxWidth: '150px', whiteSpace: 'normal', textAlign: 'left', padding: '6px', border: '1px solid #ddd', fontSize: '12px' } })),
         { key: "total", content: "Total Days", isSortable: true, style: { textAlign: 'left', padding: '6px', border: '1px solid #ddd', fontSize: '12px', maxWidth: '80px' } }
       ];
