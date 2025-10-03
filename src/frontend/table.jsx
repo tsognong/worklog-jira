@@ -395,32 +395,33 @@ export const PivotTable = ({ filters }) => {
   const transformWorklogData = useMemo(() => {
     return (worklogs) => {
       const aggregatedHours = worklogs.reduce((acc, log) => {
+        const projectComponent = `${log.project} - ${log.component}`;
         acc[log.author] ??= {};
-        acc[log.author][log.component] ??= 0;
-        acc[log.author][log.component] += log.hours / 8; // Convert hours to days
+        acc[log.author][projectComponent] ??= 0;
+        acc[log.author][projectComponent] += log.hours / 8; // Convert hours to days
         return acc;
       }, {});
 
-      const uniqueComponents = new Set(worklogs.map((log) => log.component));
+      const uniqueComponents = new Set(worklogs.map((log) => `${log.project} - ${log.component}`));
       const components = Array.from(uniqueComponents);
 
       const totalColumns = [
-        { key: "author", content: "Author", isSortable: true, style: { padding: '8px', border: '1px solid #ddd' } },
-        ...components.map((c) => ({ key: c, content: c, isSortable: true, style: { minWidth: '100px', maxWidth: '200px', whiteSpace: 'normal', textAlign: 'left', padding: '8px', border: '1px solid #ddd' } })),
-        { key: "total", content: "Total Days", isSortable: true, style: { textAlign: 'left', padding: '8px', border: '1px solid #ddd' } }
+        { key: "author", content: "Author", isSortable: true, style: { padding: '6px', border: '1px solid #ddd', fontSize: '12px', maxWidth: '120px' } },
+        ...components.map((c) => ({ key: c, content: c, isSortable: true, style: { minWidth: '80px', maxWidth: '150px', whiteSpace: 'normal', textAlign: 'left', padding: '6px', border: '1px solid #ddd', fontSize: '12px' } })),
+        { key: "total", content: "Total Days", isSortable: true, style: { textAlign: 'left', padding: '6px', border: '1px solid #ddd', fontSize: '12px', maxWidth: '80px' } }
       ];
 
       const totalRows = Object.entries(aggregatedHours).map(([author, componentsData]) => {
         let authorTotal = 0;
-        const row = { key: author, cells: [{ key: "author", content: author, style: { padding: '8px', border: '1px solid #ddd' } }] };
+        const row = { key: author, cells: [{ key: "author", content: author, style: { padding: '6px', border: '1px solid #ddd', fontSize: '12px' } }] };
 
         components.forEach((component) => {
           const days = componentsData[component] || 0;
-          row.cells.push({ key: component, content: days === 0 ? "-" : days.toFixed(2), style: { padding: '8px', border: '1px solid #ddd' } });
+          row.cells.push({ key: component, content: days === 0 ? "-" : days.toFixed(2), style: { padding: '6px', border: '1px solid #ddd', fontSize: '12px' } });
           authorTotal += days;
         });
 
-        row.cells.push({ key: "total", content: authorTotal === 0 ? "-" : authorTotal.toFixed(2), style: { padding: '8px', border: '1px solid #ddd' } });
+        row.cells.push({ key: "total", content: authorTotal === 0 ? "-" : authorTotal.toFixed(2), style: { padding: '6px', border: '1px solid #ddd', fontSize: '12px' } });
         return row;
       });
 
@@ -434,9 +435,9 @@ export const PivotTable = ({ filters }) => {
       totalRows.push({
         key: "grand-total",
         cells: [
-          { key: "author", content: "Total", style: { padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' } },
-          ...componentTotals.map((total) => ({ key: "component-total", content: total, style: { padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' } })),
-          { key: "grand-total", content: grandTotal === 0 ? "-" : grandTotal.toFixed(2), style: { padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' } }
+          { key: "author", content: "Total", style: { padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', fontSize: '12px' } },
+          ...componentTotals.map((total) => ({ key: "component-total", content: total, style: { padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', fontSize: '12px' } })),
+          { key: "grand-total", content: grandTotal === 0 ? "-" : grandTotal.toFixed(2), style: { padding: '6px', border: '1px solid #ddd', fontWeight: 'bold', fontSize: '12px' } }
         ]
       });
 
@@ -502,8 +503,15 @@ export const PivotTable = ({ filters }) => {
               )}
               
               <DynamicTable head={{ cells: columns }} rows={paginatedSimpleRows} caption={"Worklog details (hours)"} className="worklog-table" />
-              <DynamicTable key={worklogs.length}
-                head={{ cells: totalColumns }} rows={totalRows} caption={"Worklog Summary by Project"} />
+              
+              {/* Compact Summary Table with Box container */}
+              <Box paddingTop="space.200" paddingBottom="space.200">
+                <DynamicTable key={worklogs.length}
+                  head={{ cells: totalColumns }} 
+                  rows={totalRows} 
+                  caption={"Worklog Summary by Project"} 
+                />
+              </Box>
             </Box>
             :
             <EmptyState
