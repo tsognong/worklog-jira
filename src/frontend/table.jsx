@@ -26,6 +26,10 @@ export const PivotTable = ({ filters }) => {
   const [selectedDetails, setSelectedDetails] = useState(null);
   const [detailsMap, setDetailsMap] = useState({});
 
+  // Simple pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
 
   const getSiteUrl = async () => {
     const context = await view.getContext();
@@ -370,6 +374,15 @@ export const PivotTable = ({ filters }) => {
     return { simpleRows: computedRows };
   }, [groupedData, uniqueDates]);
 
+  // Simple pagination for simpleRows
+  const paginatedSimpleRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return simpleRows.slice(startIndex, endIndex);
+  }, [simpleRows, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(simpleRows.length / itemsPerPage);
+
   const handleCellClick = (author, date, detailsMap) => {
     setSelectedDetails({
       author,
@@ -464,7 +477,31 @@ export const PivotTable = ({ filters }) => {
                   Export to Excel
                 </Button>
               </Inline>
-              <DynamicTable head={{ cells: columns }} rows={simpleRows} caption={"Worklog details (hours)"} className="worklog-table" />
+              
+              {/* Simple Pagination Controls */}
+              {simpleRows.length > itemsPerPage && (
+                <Box>
+                  <Inline space="space.100">
+                    <Button
+                      appearance="subtle"
+                      isDisabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span>Page {currentPage} of {totalPages} ({simpleRows.length} total authors)</span>
+                    <Button
+                      appearance="subtle"
+                      isDisabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                      Next
+                    </Button>
+                  </Inline>
+                </Box>
+              )}
+              
+              <DynamicTable head={{ cells: columns }} rows={paginatedSimpleRows} caption={"Worklog details (hours)"} className="worklog-table" />
               <DynamicTable key={worklogs.length}
                 head={{ cells: totalColumns }} rows={totalRows} caption={"Worklog Summary by Project"} />
             </Box>
