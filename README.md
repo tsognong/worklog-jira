@@ -4,7 +4,7 @@ A Forge-based custom dashboard plugin for Jira that provides comprehensive workl
 
 ## Overview
 
-This Forge app displays worklog data in a Jira dashboard gadget, allowing teams to track and analyze time logged across projects, employees, and components. The dashboard provides flexible filtering and grouping options to help you gain insights into time tracking data.
+This Forge app displays worklog data in a Jira dashboard gadget, allowing teams to track and analyze time logged across projects, employees, and components. The dashboard provides flexible filtering and grouping options to help teams understand how time is being spent.
 
 ## Features
 
@@ -64,7 +64,11 @@ forge tunnel
 
 This plugin is currently used at **Uni2grow** for worklog tracking and reporting.
 
+## Maintainer
+
+**Tsognong** ([@tsognong](https://github.com/tsognong))  
+Email: tsognong.fidele@gmail.com
+
 ## Support
 
 See [Get help](https://developer.atlassian.com/platform/forge/get-help/) for how to get help and provide feedback.
-```
