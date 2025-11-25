@@ -18,6 +18,9 @@ This Forge app displays worklog data in a Jira dashboard gadget, allowing teams 
 - **Detailed Time Logs**: Drill down into individual worklog entries and time logged details
 - **Export Capabilities**: Export worklog reports to Excel, CSV, and other formats
 
+  <img width="1094" height="656" alt="image" src="https://github.com/user-attachments/assets/c32b1234-3954-412a-aad2-c197f9538e48" />
+
+
 ## Requirements
 
 See [Set up Forge](https://developer.atlassian.com/platform/forge/set-up-forge/) for instructions to get set up.
