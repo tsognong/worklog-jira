@@ -1,6 +1,6 @@
 modules:
   jira:dashboardGadget:
-    - key: opendxp-dashboard-gadget-ui-kit-2-hello-world-gadget
+    - key: worklog-business-dashboard-gadget
       title: Worklog Business Dashboard
       description: Worklog Business dashboard.
       thumbnail: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
@@ -12,7 +12,7 @@ modules:
         resource: dashboard
         render: native
   jira:globalPage:
-    - key: worklog-business-hello-world-global-page
+    - key: worklog-business-global-page
       resource: global-page
       resolver:
         function: resolver
