@@ -2,9 +2,13 @@
 
 A Forge-based custom dashboard plugin for Jira that provides comprehensive worklog visualization and reporting capabilities.
 
+## Preview
+
+<img width="1094" height="656" alt="Jira Worklog Dashboard Preview" src="https://github.com/user-attachments/assets/c32b1234-3954-412a-aad2-c197f9538e48" />
+
 ## Overview
 
-This Forge app displays worklog data in a Jira dashboard gadget, allowing teams to track and analyze time logged across projects, employees, and components. The dashboard provides flexible filtering and grouping options to help teams understand how time is being spent.
+This Forge app displays worklog data in a Jira dashboard gadget, allowing teams to track and analyze time logged across projects, employees, and components. The dashboard provides flexible filtering and grouping capabilities.
 
 ## Features
 
@@ -17,9 +21,6 @@ This Forge app displays worklog data in a Jira dashboard gadget, allowing teams 
 - **Summary Views**: Get overview of total time logged
 - **Detailed Time Logs**: Drill down into individual worklog entries and time logged details
 - **Export Capabilities**: Export worklog reports to Excel, CSV, and other formats
-
-  <img width="1094" height="656" alt="image" src="https://github.com/user-attachments/assets/c32b1234-3954-412a-aad2-c197f9538e48" />
-
 
 ## Requirements
 
